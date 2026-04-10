@@ -1,0 +1,42 @@
+name: Deal Tracker
+
+on:
+  schedule:
+    # Runs every weekday at 8am and 2pm ET (12:00 and 18:00 UTC)
+    - cron: "0 12 * * 1-5"
+    - cron: "0 18 * * 1-5"
+  workflow_dispatch: # Allow manual runs from the GitHub UI
+
+jobs:
+  run-tracker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run deal tracker
+        env:
+          HARMONIC_API_KEY: ${{ secrets.HARMONIC_API_KEY }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+          MIN_ROUND_SIZE_M: ${{ secrets.MIN_ROUND_SIZE_M }}
+          MAX_ROUND_SIZE_M: ${{ secrets.MAX_ROUND_SIZE_M }}
+          MIN_EMPLOYEES: ${{ secrets.MIN_EMPLOYEES }}
+        run: npm start
+
+      - name: Cache seen companies state
+        uses: actions/cache@v4
+        with:
+          path: data/seen_companies.json
+          key: seen-companies-${{ github.run_id }}
+          restore-keys: |
+            seen-companies-
